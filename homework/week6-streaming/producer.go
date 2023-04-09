@@ -46,6 +46,7 @@ func produce(p *kafka.Producer, topic string, datapath string) {
 	data, err := readCsv(datapath)
 
 	if err != nil {
+		fmt.Printf("Failed to read csv file: %s\n", err)
 		return
 	}
 
@@ -53,18 +54,16 @@ func produce(p *kafka.Producer, topic string, datapath string) {
 
 	data_chan := make(chan kafka.Event, 10000)
 
-	for i := 0; (i < 5 && DebugMode) || !DebugMode; i++ {
+	for i := 0; i < 5 || !DebugMode; i++ {
 		record, err := data.Read()
 
 		if err == io.EOF {
+			fmt.Printf("Finished producing records to topic %s\n", topic)
 			break
 		}
 
-		if err != nil {
-			continue
-		}
-
-		if err != nil {
+		if err != nil && DebugMode {
+			fmt.Printf("Failed to read record: %s\n", err)
 			continue
 		}
 
@@ -79,6 +78,10 @@ func produce(p *kafka.Producer, topic string, datapath string) {
 		}, data_chan)
 
 		if err != nil {
+			if DebugMode {
+				fmt.Printf("Failed to produce record: %s\n", err)
+			}
+
 			continue
 		}
 
@@ -88,6 +91,7 @@ func produce(p *kafka.Producer, topic string, datapath string) {
 func readCsv(filename string) (*csv.Reader, error) {
 	csvFile, err := os.Open(filename)
 	if err != nil {
+		fmt.Printf("Failed to open csv file: %s\n", err)
 		return nil, err
 	}
 
